@@ -49,3 +49,12 @@ jobs:
           name: mcubstatus-ci-apk-unsigned
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Assemble debug APK (auto-signed with debug keystore)
+        run: ./gradlew :app:assembleDebug --no-daemon
+      - name: Upload debug APK (installable)
+        uses: actions/upload-artifact@v7
+        with:
+          name: mcubstatus-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
