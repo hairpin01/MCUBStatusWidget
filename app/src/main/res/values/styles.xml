@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.MCUBStatus" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@android:color/system_accent1_600</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

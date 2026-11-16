@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">MCUB Status</string>
+    <string name="widget_description">MCUB userbot status</string>
+    <string name="title_settings">MCUB Status Widget</string>
+    <string name="hint_api_url">API URL</string>
+    <string name="hint_token">Bearer token (optional)</string>
+    <string name="btn_save">Save</string>
+    <string name="status_online">Online</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_loading">Loading…</string>
+    <string name="status_error">No connection</string>
+    <string name="pref_url_key">api_url</string>
+    <string name="pref_token_key">api_token</string>
+</resources>
