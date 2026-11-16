@@ -27,7 +27,7 @@ jobs:
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
         id: sign_apk
-        if: ${{ secrets.KEYSTORE != 0 }}
+        continue-on-error: true
         with:
           releaseDir: app/build/outputs/apk/release
           signingKey: ${{ secrets.KEYSTORE }}
@@ -36,14 +36,14 @@ jobs:
           keyPassword: ${{ secrets.KEY_PASSWORD }}
           buildToolsVersion: 35.0.0
       - name: Upload signed release APK
-        if: steps.sign_apk.outputs.signedFile != 0
+        if: steps.sign_apk.outcome == success
         uses: actions/upload-artifact@v7
         with:
           name: mcubstatus-ci-apk
           path: ${{ steps.sign_apk.outputs.signedFile }}
           if-no-files-found: error
       - name: Upload unsigned release APK (no signing secrets configured)
-        if: steps.sign_apk.outputs.signedFile == 0
+        if: steps.sign_apk.outcome != success
         uses: actions/upload-artifact@v7
         with:
           name: mcubstatus-ci-apk-unsigned
