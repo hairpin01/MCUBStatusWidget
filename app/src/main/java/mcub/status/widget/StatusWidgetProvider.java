@@ -28,7 +28,7 @@ public class StatusWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
         schedulePoll(context);
-        for (int id : appWidgetIds) render(context, manager, id, null);
+        for (int id : appWidgetIds) render(context, manager, id, null, null);
         startFetch(context, appWidgetIds);
     }
 
