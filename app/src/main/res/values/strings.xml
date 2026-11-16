@@ -21,6 +21,10 @@
     <string name="align_left">Left</string>
     <string name="align_center">Center</string>
     <string name="align_right">Right</string>
+    <string name="hint_design">Widget design</string>
+    <string name="design_bar">Panel + dot</string>
+    <string name="design_ring">Ring frame</string>
+    <string name="hint_thickness">Indicator thickness (dp, 2–12)</string>
     <string name="hint_modules">Modules JSON (endpoint / method / key / params / placeholder)</string>
     <string name="hint_poll">Poll interval (minutes)</string>
     <string name="btn_test">Test</string>

@@ -35,6 +35,9 @@ public final class ApiClient {
     public static final String ALIGN_LEFT = "left";
     public static final String ALIGN_CENTER = "center";
     public static final String ALIGN_RIGHT = "right";
+    public static final String LAYOUT_BAR = "bar";
+    public static final String LAYOUT_RING = "ring";
+    public static final int DEFAULT_THICKNESS_DP = 4;
     private static final int TIMEOUT_MS = 5000;
     private ApiClient() {}
     public static SharedPreferences prefs(Context context) {
@@ -60,6 +63,18 @@ public final class ApiClient {
     public static String alignment(Context context) {
         String a = prefs(context).getString("align", "");
         return a.isEmpty() ? ALIGN_LEFT : a;
+    }
+    /** Widget design: "bar" (dot on a panel) or "ring" (thick outline frame). */
+    public static String layout(Context context) {
+        String l = prefs(context).getString("layout", "");
+        return LAYOUT_RING.equals(l) ? LAYOUT_RING : LAYOUT_BAR;
+    }
+    /** Status indicator thickness in dp: dot diameter (bar) or ring stroke (ring). */
+    public static int thicknessDp(Context context) {
+        int t = prefs(context).getInt("thickness", DEFAULT_THICKNESS_DP);
+        if (t < 2) t = 2;
+        if (t > 12) t = 12;
+        return t;
     }
     /** Parse a user HEX color; returns null if empty/invalid (=> Material You). */
     public static Integer parseColor(String hex) {
