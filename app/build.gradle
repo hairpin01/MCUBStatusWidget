@@ -2,6 +2,14 @@ plugins { id "com.android.application" }
 android {
     namespace "mcub.status.widget"
     compileSdk 35
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('mcubwidget.keystore')
+            storePassword 'mcubstatus123'
+            keyAlias 'mcubstatus'
+            keyPassword 'mcubstatus123'
+        }
+    }
     defaultConfig {
         applicationId "mcub.status.widget"
         minSdk 31
