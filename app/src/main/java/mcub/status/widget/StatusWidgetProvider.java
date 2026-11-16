@@ -1,5 +1,4 @@
 package mcub.status.widget;
-
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
@@ -7,7 +6,9 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.view.Gravity;
 import android.widget.RemoteViews;
 
 public class StatusWidgetProvider extends AppWidgetProvider {
@@ -28,7 +29,7 @@ public class StatusWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] appWidgetIds) {
         schedulePoll(context);
-        for (int id : appWidgetIds) render(context, manager, id, null, null);
+        for (int id : appWidgetIds) render(context, manager, id, null, null, null, null);
         startFetch(context, appWidgetIds);
     }
 
@@ -46,37 +47,60 @@ public class StatusWidgetProvider extends AppWidgetProvider {
         final Context app = context.getApplicationContext();
         new Thread(() -> {
             ApiClient.Result result = ApiClient.fetch(app);
-            String rendered = ApiClient.render(ApiClient.template(app), result.placeholders);
+            String title = ApiClient.render(ApiClient.titleTemplate(app), result.placeholders);
+            String status = result.reachable
+                    ? ApiClient.render(ApiClient.statusTemplate(app), result.placeholders)
+                    : app.getString(R.string.status_offline);
+            String footer = result.reachable
+                    ? ApiClient.render(ApiClient.footerTemplate(app), result.placeholders)
+                    : (result.error == null ? "API unreachable" : result.error);
             AppWidgetManager mgr = AppWidgetManager.getInstance(app);
             for (int id : ids) {
-                render(app, mgr, id, result, rendered);
+                render(app, mgr, id, result, title, status, footer);
             }
         }, "mcub-widget-fetch").start();
     }
 
     private static void render(Context context, AppWidgetManager manager, int id,
-                               ApiClient.Result result, String rendered) {
+                               ApiClient.Result result, String title, String status, String footer) {
         Palette p = Palette.resolve(context);
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_status);
-        String title;
+
         int dotColor;
         if (result == null) {
-            title = context.getString(R.string.status_loading);
-            rendered = "";
             dotColor = p.muted;
         } else if (!result.reachable) {
-            title = context.getString(R.string.status_offline);
-            rendered = result.error == null ? "API unreachable" : result.error;
             dotColor = Color.rgb(0xE8, 0x63, 0x5E);
         } else {
-            title = context.getString(R.string.status_online);
             dotColor = Color.rgb(0x6D, 0xD5, 0x8A);
         }
-        views.setTextViewText(R.id.status_text, title);
-        views.setTextViewText(R.id.detail_text, rendered == null ? "" : rendered);
-        views.setTextColor(R.id.status_text, p.onSurface);
-        views.setTextColor(R.id.detail_text, p.onSurface);
-        views.setTextColor(R.id.title_text, p.onSurface);
+
+        if (title == null) title = "MCUB";
+        if (status == null) status = context.getString(R.string.status_loading);
+        if (footer == null) footer = "";
+
+        views.setTextViewText(R.id.title_text, title);
+        views.setTextViewText(R.id.status_text, status);
+        views.setTextViewText(R.id.detail_text, footer);
+
+        // Colors: user HEX overrides, otherwise Material You palette
+        SharedPreferences sp = ApiClient.prefs(context);
+        Integer cTitle = ApiClient.parseColor(sp.getString("color_title", ""));
+        Integer cStatus = ApiClient.parseColor(sp.getString("color_status", ""));
+        Integer cFooter = ApiClient.parseColor(sp.getString("color_footer", ""));
+        views.setTextColor(R.id.title_text, cTitle != null ? cTitle : p.onSurface);
+        views.setTextColor(R.id.status_text, cStatus != null ? cStatus : p.onSurface);
+        views.setTextColor(R.id.detail_text, cFooter != null ? cFooter : p.muted);
+
+        // Alignment for status & footer
+        String align = ApiClient.alignment(context);
+        int gravity;
+        if (ApiClient.ALIGN_CENTER.equals(align)) gravity = Gravity.CENTER;
+        else if (ApiClient.ALIGN_RIGHT.equals(align)) gravity = Gravity.END | Gravity.CENTER_VERTICAL;
+        else gravity = Gravity.START | Gravity.CENTER_VERTICAL;
+        views.setInt(R.id.status_text, "setGravity", gravity);
+        views.setInt(R.id.detail_text, "setGravity", gravity);
+
         views.setInt(R.id.status_icon, "setColorFilter", dotColor);
         Intent refresh = new Intent(context, StatusWidgetProvider.class);
         refresh.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);

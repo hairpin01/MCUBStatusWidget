@@ -6,9 +6,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,7 +14,8 @@ import org.json.JSONObject;
  * Generic placeholder engine for the MCUB web panel API.
  * Modules are configured in JSON: each defines an endpoint, method,
  * a JSON key path and a placeholder name. Results are collected into a
- * placeholder map that is substituted into the user template.
+ * placeholder map that is substituted into user templates
+ * (title, status and footer).
  */
 public final class ApiClient {
     public static final String DEFAULT_URL = "http://127.0.0.1:8080";
@@ -26,12 +25,16 @@ public final class ApiClient {
             + "{\"name\":\"bot_user\",\"placeholder\":\"bot_user\",\"endpoint\":\"/api/bot/status\",\"method\":\"GET\",\"key\":\"username\",\"params\":\"\"},"
             + "{\"name\":\"meta_uptime\",\"placeholder\":\"uptime\",\"endpoint\":\"/api/ext/meta\",\"method\":\"GET\",\"key\":\"data.uptime\",\"params\":\"\"},"
             + "{\"name\":\"meta_version\",\"placeholder\":\"version\",\"endpoint\":\"/api/ext/meta\",\"method\":\"GET\",\"key\":\"data.version\",\"params\":\"\"},"
-            + "{\"name\":\"meta_modules\",\"placeholder\":\"modules\",\"endpoint\":\"/api/ext/meta\",\"method\":\"GET\",\"key\":\"data.modules_count\",\"params\":\"\"},"
-            + "{\"name\":\"meta_commands\",\"placeholder\":\"commands\",\"endpoint\":\"/api/ext/meta\",\"method\":\"GET\",\"key\":\"data.commands_count\",\"params\":\"\"},"
+            + "{\"name\":\"meta_modules\",\"placeholder\":\"modules\",\"endpoint\":\"/api/ext/meta\",\"key\":\"data.modules_count\",\"method\":\"GET\",\"params\":\"\"},"
+            + "{\"name\":\"meta_commands\",\"placeholder\":\"commands\",\"endpoint\":\"/api/ext/meta\",\"key\":\"data.commands_count\",\"method\":\"GET\",\"params\":\"\"},"
             + "{\"name\":\"user\",\"placeholder\":\"user\",\"endpoint\":\"/api/ext/get_me\",\"method\":\"GET\",\"key\":\"data.username\",\"params\":\"\"}"
             + "]";
-    public static final String DEFAULT_TEMPLATE = "MCUB {session}\n"
-            + "@{user} · {version} · up {uptime}";
+    public static final String DEFAULT_TITLE_TEMPLATE = "MCUB";
+    public static final String DEFAULT_STATUS_TEMPLATE = "Online";
+    public static final String DEFAULT_TEMPLATE = "@{user} · {version} · up {uptime}";
+    public static final String ALIGN_LEFT = "left";
+    public static final String ALIGN_CENTER = "center";
+    public static final String ALIGN_RIGHT = "right";
     private static final int TIMEOUT_MS = 5000;
     private ApiClient() {}
     public static SharedPreferences prefs(Context context) {
@@ -45,15 +48,36 @@ public final class ApiClient {
     public static String modulesJson(Context context) {
         return prefs(context).getString("modules_json", DEFAULT_MODULES);
     }
-    public static String template(Context context) {
+    public static String titleTemplate(Context context) {
+        return prefs(context).getString("template_title", DEFAULT_TITLE_TEMPLATE);
+    }
+    public static String statusTemplate(Context context) {
+        return prefs(context).getString("template_status", DEFAULT_STATUS_TEMPLATE);
+    }
+    public static String footerTemplate(Context context) {
         return prefs(context).getString("template", DEFAULT_TEMPLATE);
+    }
+    public static String alignment(Context context) {
+        String a = prefs(context).getString("align", "");
+        return a.isEmpty() ? ALIGN_LEFT : a;
+    }
+    /** Parse a user HEX color; returns null if empty/invalid (=> Material You). */
+    public static Integer parseColor(String hex) {
+        if (hex == null) return null;
+        String s = hex.trim();
+        if (s.isEmpty()) return null;
+        if (!s.startsWith("#")) s = "#" + s;
+        try {
+            return android.graphics.Color.parseColor(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
     public static long pollIntervalMs(Context context) {
         long minutes = prefs(context).getLong("poll_minutes", 1L);
         if (minutes < 1) minutes = 1;
         return minutes * 60000L;
     }
-
     public static final class Result {
         public final boolean reachable;
         public final Map<String, String> placeholders;
@@ -66,7 +90,6 @@ public final class ApiClient {
             this.error = error;
         }
     }
-
     /** Fetch all configured modules. Call from a background thread only. */
     public static Result fetch(Context context) {
         String base = baseUrl(context);
@@ -106,7 +129,6 @@ public final class ApiClient {
         }
         return new Result(true, placeholders, latency, null);
     }
-
     /** Substitute {placeholders} in a template line. */
     public static String render(String template, Map<String, String> values) {
         StringBuilder sb = new StringBuilder();
@@ -128,7 +150,6 @@ public final class ApiClient {
         }
         return sb.toString();
     }
-
     public static String formatUptime(Object secondsObj) {
         double seconds;
         if (secondsObj instanceof Number) {
@@ -146,7 +167,6 @@ public final class ApiClient {
         if (m > 0) return m + "m";
         return s + "s";
     }
-
     private static JSONObject request(String base, String endpoint, String method,
                                       String params, String token) throws Exception {
         StringBuilder urlSb = new StringBuilder(base).append(endpoint);
@@ -188,9 +208,7 @@ public final class ApiClient {
             conn.disconnect();
         }
     }
-
     private static final String[] UPTIME_KEYS = {"uptime", "up_time", "upTime"};
-
     /** Extract a value by dot-path; supports array indexes like items.0.name. */
     private static String extract(Object root, String path) {
         if (path == null || path.isEmpty()) return null;
