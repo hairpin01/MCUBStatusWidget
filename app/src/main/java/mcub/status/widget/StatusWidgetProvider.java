@@ -33,7 +33,14 @@ public class StatusWidgetProvider extends AppWidgetProvider {
         startFetch(context, appWidgetIds);
     }
 
-    private void startFetch(Context context, int[] appWidgetIds) {
+    /** Static entry point for PollReceiver so any class can trigger a refresh. */
+    static void dispatchPoll(Context context) {
+        int[] ids = AppWidgetManager.getInstance(context)
+                .getAppWidgetIds(new ComponentName(context, StatusWidgetProvider.class));
+        if (ids.length > 0) startFetch(context, ids);
+    }
+
+    private static void startFetch(Context context, int[] appWidgetIds) {
         int[] ids = appWidgetIds != null ? appWidgetIds : AppWidgetManager.getInstance(context)
                 .getAppWidgetIds(new ComponentName(context, StatusWidgetProvider.class));
         if (ids.length == 0) return;
@@ -47,11 +54,9 @@ public class StatusWidgetProvider extends AppWidgetProvider {
         }, "mcub-widget-fetch").start();
     }
 
-    private void render(Context context, AppWidgetManager manager, int id, ApiClient.Status status) {
+    private static void render(Context context, AppWidgetManager manager, int id, ApiClient.Status status) {
         Palette p = Palette.resolve(context);
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_status);
-        views.setInt(R.id.widget_root, "setBackgroundColor", p.surface);
-
         String title;
         String detail;
         int dotColor;
@@ -81,14 +86,12 @@ public class StatusWidgetProvider extends AppWidgetProvider {
             detail = "setup incomplete";
             dotColor = Color.rgb(0xF2, 0xB8, 0x24);
         }
-
         views.setTextViewText(R.id.status_text, title);
         views.setTextViewText(R.id.detail_text, detail);
         views.setTextColor(R.id.status_text, p.onSurface);
         views.setTextColor(R.id.detail_text, p.muted);
         views.setTextColor(R.id.title_text, p.onSurface);
         views.setInt(R.id.status_icon, "setColorFilter", dotColor);
-
         Intent refresh = new Intent(context, StatusWidgetProvider.class);
         refresh.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         refresh.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[]{id});
